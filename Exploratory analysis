@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+#Exploratory analysis before classification analysis
+
+"""
+
+# %% 
+#IMPORT CLEANED DATASET
+
+import pandas as pd
+import nltk
+
+data = pd.read_csv('emotiondata_cleaned.csv', sep = ',', encoding='utf-8')
+
+# %% 
+#AGE
+
+data['AGE'].mean()
+data['AGE'].std()
+data['AGE'].max()
+data['AGE'].min()
+
+#Mean age is 22,3
+#Standard deviation is 3,8
+#Age range is 18-35
+
+# %% 
+#GENDER
+data['SEX'].value_counts()
+2361/5241
+2875/5241
+
+# %% 
+#Get average sentence length + standard deviation as well as min and max length of sentence
+data['word_count'].mean()
+data['word_count'].std()
+data['word_count'].max()
+data['word_count'].min()
+
+#Shortest sentence is 1 word (maybe we should remove all sentences with less than two words if we use bigrams?)
+#Longest sentence is 178 words
+#Mean length of sentence is 21,5
+#Standard deviation is 14,3
+
+data.groupby(['emotions_label'])['word_count'].mean()
+data.groupby(['emotions_label'])['word_count'].std()
+
+# %% 
+data.groupby(['COUN'])['COUN'].count()
+
+# %% 
+#COMMON N-GRAMS FOR EACH INVESTIGATED EMOTION
+#Exploratory to seek current phrases/topics from n-grams before modelling
+
+#%% 
+# For individual plots
+from collections import Counter
+from itertools import chain
+import textblob
+from textblob import TextBlob
+import plotly.graph_objs as go
+from plotly.offline import iplot
+import cufflinks as cf
+cf.go_offline()
+cf.set_config_file(offline=False, world_readable=True)
+
+# datasets for each emotion
+df_sadness=data[data['emotions_label'] == "sadness"]
+df_joy=data[data['emotions_label'] == "joy"]
+df_anger=data[data['emotions_label'] == "anger"]
+df_disgust=data[data['emotions_label'] == "disgust"]
+df_fear=data[data['emotions_label'] == "fear"]
+
+# %%
+# Top 20 most frequent words (unigrams, without stopwords)
+from sklearn.feature_extraction.text import CountVectorizer
+
+def get_top_n_words(corpus, n=None):
+    vec = CountVectorizer(stop_words = 'english').fit(corpus)
+    bag_of_words = vec.transform(corpus)
+    sum_words = bag_of_words.sum(axis=0) 
+    words_freq = [(word, sum_words[0, idx]) for word, idx in vec.vocabulary_.items()]
+    words_freq =sorted(words_freq, key = lambda x: x[1], reverse=True)
+    return words_freq[:n]
+common_words = get_top_n_words(df_anger['sentence'], 20)
+for word, freq in common_words:
+    print(word, freq)
+df2 = pd.DataFrame(common_words, columns = ['sentence' , 'count'])
+df2.groupby('sentence').sum()['count'].sort_values(ascending=False).iplot(
+    kind='bar', yTitle='Count', linecolor='black', title='Top 20 words in review after removing stop words')
+
+# %%
+# Top 20 most frequent words (bigrams, without stopwords)
+from sklearn.feature_extraction.text import CountVectorizer
+def get_top_n_bigram(corpus, n=None):
+    vec = CountVectorizer(ngram_range=(2, 2), stop_words='english').fit(corpus)
+    bag_of_words = vec.transform(corpus)
+    sum_words = bag_of_words.sum(axis=0) 
+    words_freq = [(word, sum_words[0, idx]) for word, idx in vec.vocabulary_.items()]
+    words_freq =sorted(words_freq, key = lambda x: x[1], reverse=True)
+    return words_freq[:n]
+common_words = get_top_n_bigram(df_anger['sentence'], 20)
+for word, freq in common_words:
+    print(word, freq)
+df4 = pd.DataFrame(common_words, columns = ['sentence' , 'count'])
+df4.groupby('sentence').sum()['count'].sort_values(ascending=False).iplot(
+    kind='bar', yTitle='Count', linecolor='black', title='Top 20 bigrams: Disgust')
+
+
+# %%
+# Top 20 most frequent words (trigrams, without stopwords)
+def get_top_n_trigram(corpus, n=None):
+    vec = CountVectorizer(ngram_range=(3, 3), stop_words='english').fit(corpus)
+    bag_of_words = vec.transform(corpus)
+    sum_words = bag_of_words.sum(axis=0) 
+    words_freq = [(word, sum_words[0, idx]) for word, idx in vec.vocabulary_.items()]
+    words_freq =sorted(words_freq, key = lambda x: x[1], reverse=True)
+    return words_freq[:n]
+common_words = get_top_n_trigram(df_anger['sentence'], 20)
+for word, freq in common_words:
+    print(word, freq)
+df6 = pd.DataFrame(common_words, columns = ['sentence' , 'count'])
+df6.groupby('sentence').sum()['count'].sort_values(ascending=False).iplot(
+    kind='bar', yTitle='Count', linecolor='black', title='Top 20 trigrams in review after removing stop words')
+
+
+

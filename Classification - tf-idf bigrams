@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+#Classification analysis
+#TF-IDF FOR BIGRAMS
+"""
+
+# %% 
+#IMPORT CLEANED DATASET
+
+import pandas as pd
+import nltk
+
+data = pd.read_csv('emotiondata_cleaned.csv', sep = ',', encoding='utf-8')
+
+# %%
+# PREPARE FOR CROSS VALIDATION
+X = data['sentence']
+y = data['emotions']
+
+# %% 
+### TF_IDF FOR UNIGRAMS
+
+from sklearn.feature_extraction.text import CountVectorizer
+# Bigram vectorizer
+bigram_vectorizer = CountVectorizer(ngram_range=(1,2),token_pattern=r'\b\w+\b', min_df=1)
+bigrams = bigram_vectorizer.fit_transform(X)
+print(bigrams[0])
+
+# %% 
+
+# USING THE TF-IDF ON DATA, for normalization
+from sklearn.feature_extraction.text import TfidfTransformer
+transformer = TfidfTransformer().fit(bigrams)
+bigrams = transformer.transform(bigrams)
+print(bigrams[0])
+
+
+# %% 
+#Get scores for each class to use in classification report
+
+from sklearn import svm
+from sklearn.datasets import make_classification
+from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import classification_report
+
+#Define our Support Vector Machine model
+model = svm.SVC(kernel='linear')
+
+# Generate cross-validation prediction with 5fold sampling
+y_pred = cross_val_predict(model, bigrams, y, cv=5)
+
+# generate report
+print(classification_report(y, y_pred))
+
+# %% 
+#Get confusion matrix
+from sklearn.metrics import confusion_matrix
+confusionmatrix_all = confusion_matrix(y, y_pred)
+print(confusionmatrix_all)
